@@ -1,0 +1,19 @@
+Column name,Description
+PID,Participant ID: P01-P50 (In total 32 participants)
+Order,Trial order: 1-16
+BlockNum,Block order: 1-4
+BlockName,The block's experimental condition: 
+ScenarioNum,Numeric scenario identifier
+ScenarioName,Scenario name
+GoNogo,"The content of the display 
+BasicMsg: Simple prompt in the Friction condition asking participants to confirm their decision.
+NoDisp: The display was covered using the keyboard lid during the No Friction condition."
+MessageType,"T: No display. The suggestion screen was covered in the No Friction condition in Study.
+I: The basic confirmation screen used in the Friction condition in Study."
+studyType,1: Procedural Friction (No Friction vs. Friction)
+fog,"Clear: The driver drove in clear weather.
+Fog: The driver drove in foggy weather, limiting the visibility to 500 meters. "
+time,Time passed (in seconds) since the start of a trial.
+isManual,"0: The ego vehicle is in automated mode.
+1: The driver is manually driving the car. "
+speed_mph_,Ego vehicle's speed in miles per hour (mph).
