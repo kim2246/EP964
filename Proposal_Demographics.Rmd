@@ -1,0 +1,119 @@
+---
+title: "SooYeon_Proposal_Demographics"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+
+# Load the dataset
+data <- read_excel("C:/Users/kim2246/Downloads/CSRC_PostStudySurveyData_Processed.xlsx")
+
+# Initial inspection of the data
+head(data)
+str(data)
+summary(data)
+```
+```{r}
+library(dplyr)
+
+# 'PID' is the participant identifier column
+reduced_data <- data %>%
+  group_by(PID) %>%
+  summarise(
+    DOB = first(DOB),  
+    Gender = first(gender), 
+    DrivingExp = first(DrivingExp), 
+    Frequency = first(frequency),  
+    MilesDrive = first(milesdriven),
+    CCFrequency = first(ccfrequency),
+    CCComfort = first(cccomfort)  #
+  ) %>%
+  ungroup()
+
+# View the reduced dataset
+print(reduced_data)
+```
+
+```{r}
+# Summary of Gender
+gender_summary <- reduced_data %>%
+  count(Gender) %>%
+  mutate(Percentage = n / sum(n) * 100)
+
+# Summary of frequency (driving frequency)
+frequency_summary <- reduced_data %>%
+  count(Frequency) %>%
+  mutate(Percentage = n / sum(n) * 100)
+
+# Summary of ccfrequency (cruise control frequency)
+ccfrequency_summary <- reduced_data %>%
+  count(CCFrequency) %>%
+  mutate(Percentage = n / sum(n) * 100)
+
+# Summary of cccomfort (cruise control comfort)
+cccomfort_summary <- reduced_data %>%
+  count(CCComfort) %>%
+  mutate(Percentage = n / sum(n) * 100)
+
+# Print summaries
+print(gender_summary)
+print(frequency_summary)
+print(ccfrequency_summary)
+print(cccomfort_summary)
+```
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# Summary statistics for numerical variables
+demographics_summary <- reduced_data %>%
+  summarise(
+    Avg_DrivingExp = mean(DrivingExp, na.rm = TRUE),
+    SD_DrivingExp = sd(DrivingExp, na.rm = TRUE),
+    Avg_MilesDrive = mean(MilesDrive, na.rm = TRUE),
+    SD_MilesDrive = sd(MilesDrive, na.rm = TRUE)
+  )
+
+# Display the summary
+print(demographics_summary)
+
+# Review the distribution of Gender
+gender_distribution <- reduced_data %>%
+  count(Gender) %>%
+  mutate(Percentage = n / sum(n) * 100)
+
+# Display the gender distribution
+print(gender_distribution)
+```
+```{r}
+# Plotting the gender distribution
+ggplot(reduced_data, aes(x = Gender)) +
+  geom_bar(fill = "turquoise") +
+  labs(title = "Gender Distribution", x = "Gender", y = "Count") +
+  theme_minimal()
+
+# Histogram for Driving Experience
+ggplot(reduced_data, aes(x = DrivingExp)) +
+  geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
+  labs(title = "Driving Experience Distribution", x = "Driving Experience (years)", y = "Frequency") +
+  theme_minimal()
+
+# Histogram for Miles Driven
+ggplot(reduced_data, aes(x = MilesDrive)) +
+  geom_histogram(binwidth = 5000, fill = "lightpink", color = "black") +
+  labs(title = "Miles Driven Distribution", x = "Miles Driven", y = "Frequency") +
+  theme_minimal()
+
+ggplot(reduced_data, aes(x = CCComfort, fill = CCComfort)) +
+  geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
+  labs(title = "Comfort Level with Cruise Control", x = "Comfort Level", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))  # Adjust text angle and justification
+```
+
