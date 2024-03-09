@@ -1,0 +1,223 @@
+---
+title: "SooYeon_Proposal"
+output:
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(data.table)
+
+# Specify the path to my CSV file
+file_path <- "/Users/sykim/Downloads/CSRC_DrivingData.csv"
+
+# Read the CSV file using fread() function from data.table
+data <- fread(file_path)
+
+# View the structure of the data
+str(data)
+
+# View the first few rows of the data
+head(data)
+```
+```{r}
+library(readr)
+library(dplyr)
+
+# Filter the dataset for Participant ID: P01-P50 (Study 1)
+# Use dplyr::filter to specify the dplyr package explicitly
+filtered_data <- data %>%
+  dplyr::filter(grepl("P[0-4][0-9]|P50", PID)) # This regex matches P01 to P50
+
+# View the first few rows of the filtered data
+head(filtered_data)
+
+# Optionally, save the filtered dataset to a new CSV file
+write_csv(filtered_data, "/Users/sykim/Downloads/filtered_CSRC_DrivingData.csv")
+
+```
+```{r}
+# Filter the dataset for Participant ID: P02-P50
+# Participant IDs are in the format 'PXX'
+participant_ids <- paste0("P", sprintf("%02d", 2:50))
+new_data2 <- data %>%
+  filter(PID %in% participant_ids) %>%
+  select(PID, Order, BlockNum, BlockName, ScenarioNum, ScenarioName, Iter, 
+         GoNogo, MessageType, studyType, fog, bPrsIntention, isManual, speed_mph_, time)
+
+# View the first few rows of the filtered data
+head(new_data2)
+
+# Optionally, save the filtered dataset to a new CSV file
+write_csv(new_data2, "/Users/sykim/Downloads/new2_drivingdata.csv")
+```
+```{r}
+# Load necessary libraries
+library(tidyverse)
+ 
+# View the structure of the dataset
+str(new_data2)
+ 
+# Summary statistics for numerical variables
+summary(select(new_data2, speed_mph_, time))
+ 
+# Count the number of unique participants
+n_distinct(new_data2$PID)
+ 
+# Count the number of trials per participant (assuming 'Order' represents trials)
+new_data2 %>%
+  group_by(PID) %>%
+  summarise(trials = n_distinct(Order))
+
+```
+
+```{r}
+# Load necessary libraries
+library(tidyverse)
+
+# Descriptive statistics for numerical variables
+data_summary_by_participant <- new_data2 %>%
+  group_by(PID) %>%
+  summarise(
+    Average_Speed = mean(speed_mph_, na.rm = TRUE),
+    SD_Speed = sd(speed_mph_, na.rm = TRUE),
+    Min_Speed = min(speed_mph_, na.rm = TRUE),
+    Max_Speed = max(speed_mph_, na.rm = TRUE),
+    Average_Time = mean(time, na.rm = TRUE),
+    SD_Time = sd(time, na.rm = TRUE),
+    Min_Time = min(time, na.rm = TRUE),
+    Max_Time = max(time, na.rm = TRUE)
+  )
+
+# Display the summary
+print(data_summary_by_participant)
+```
+
+```{r}
+
+# For `isManual`, calculate the number of overrides (0 = manual driving mode)
+override_summary <- new_data2 %>%
+  group_by(PID) %>%
+  summarise(Overrides = sum(isManual == 0), Trials = n()) %>%
+  mutate(Override_Rate = Overrides / Trials * 100)
+
+# Calculate the frequency of overrides for each participant for each trial.
+override_frequency <- new_data2 %>%
+  group_by(PID, Order, BlockName) %>%
+  summarise(Override_Frequency = sum(isManual == 0, na.rm = TRUE)) %>%
+  ungroup()
+
+# Ensure the Override_Frequency is available and print the first few rows
+head(override_frequency)
+```
+
+```{r}
+# Creating a heatmap
+ggplot(override_frequency, aes(x = Order, y = PID, fill = Override_Frequency)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "steelblue") +
+  labs(title = "Heatmap of Override Frequency by Trial and Participant",
+       x = "Trial Order",
+       y = "Participant ID",
+       fill = "Override\nFrequency") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+# Calculate average override frequency by condition and scenario for each participant
+override_avg_freq <- new_data2 %>%
+  group_by(PID, BlockName, ScenarioName) %>%
+  summarise(Average_Override_Freq = mean(as.numeric(isManual == 0), na.rm = TRUE)) %>%
+  ungroup()
+
+# Create a bar plot for average override frequency by scenario and condition
+ggplot(override_avg_freq, aes(x = ScenarioName, y = Average_Override_Freq, fill = BlockName)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7)) +
+  facet_wrap(~PID) + # Separate plot for each participant
+  labs(title = "Average Override Frequency by Condition and Scenario",
+       x = "Scenario",
+       y = "Average Override Frequency") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_brewer(palette = "Pastel1") # You can choose a different palette as needed
+```
+
+```{r}
+# Filter for the first group of participants (P02 to P10)
+override_freq_P02_to_P10 <- new_data2 %>%
+  filter(PID %in% paste0('P', sprintf('%02d', 2:10))) %>%
+  group_by(PID, ScenarioName, BlockName) %>%
+  summarise(Override_Frequency = sum(isManual == 0, na.rm = TRUE)) %>%
+  ungroup()
+
+# Filter for the second group of participants (P11 to P20)
+override_freq_P11_to_P20 <- new_data2 %>%
+  filter(PID %in% paste0('P', sprintf('%02d', 11:20))) %>%
+  group_by(PID, ScenarioName, BlockName) %>%
+  summarise(Override_Frequency = sum(isManual == 0, na.rm = TRUE)) %>%
+  ungroup()
+
+# Plot for participants P02 to P10
+ggplot(override_freq_P02_to_P10, aes(x = ScenarioName, y = Override_Frequency, fill = BlockName)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  facet_wrap(~PID, scales = 'free_y') + 
+  labs(title = "Override Frequency by Condition and Scenario (P02 to P10)",
+       x = "Scenario",
+       y = "Override Frequency") +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Plot for participants P11 to P20
+ggplot(override_freq_P11_to_P20, aes(x = ScenarioName, y = Override_Frequency, fill = BlockName)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  facet_wrap(~PID, scales = 'free_y') + 
+  labs(title = "Override Frequency by Condition and Scenario (P11 to P20)",
+       x = "Scenario",
+       y = "Override Frequency") +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Plot for participants P021 to P30
+ggplot(override_freq_P02_to_P10, aes(x = ScenarioName, y = Override_Frequency, fill = BlockName)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  facet_wrap(~PID, scales = 'free_y') + 
+  labs(title = "Override Frequency by Condition and Scenario (P21 to P30)",
+       x = "Scenario",
+       y = "Override Frequency") +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Plot for participants P31 to P40
+ggplot(override_freq_P11_to_P20, aes(x = ScenarioName, y = Override_Frequency, fill = BlockName)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  facet_wrap(~PID, scales = 'free_y') + 
+  labs(title = "Override Frequency by Condition and Scenario (P31 to P40)",
+       x = "Scenario",
+       y = "Override Frequency") +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Plot for participants P41 to P50
+ggplot(override_freq_P11_to_P20, aes(x = ScenarioName, y = Override_Frequency, fill = BlockName)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  facet_wrap(~PID, scales = 'free_y') + 
+  labs(title = "Override Frequency by Condition and Scenario (P41 to P50)",
+       x = "Scenario",
+       y = "Override Frequency") +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+```{r}
+
+```
+
